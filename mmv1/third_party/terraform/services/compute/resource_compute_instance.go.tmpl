@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -1951,7 +1952,6 @@ func expandComputeInstance(project string, d *schema.ResourceData, config *trans
 		DeletionProtection:         d.Get("deletion_protection").(bool),
 		Hostname:                   d.Get("hostname").(string),
 		ForceSendFields:            []string{"CanIpForward", "DeletionProtection"},
-		AdvancedMachineFeatures:    expandAdvancedMachineFeatures(d),
 		DisplayDevice:              expandDisplayDevice(d),
 		ResourcePolicies:           tpgresource.ConvertStringArr(d.Get("resource_policies").([]interface{})),
 		ReservationAffinity:        reservationAffinity,
@@ -1974,6 +1974,12 @@ func expandComputeInstance(project string, d *schema.ResourceData, config *trans
 			EnableIntegrityMonitoring: sicMap["enableIntegrityMonitoring"].(bool),
 			ForceSendFields:           []string{"EnableSecureBoot", "EnableVtpm", "EnableIntegrityMonitoring"},
 		}
+	}
+	if amfMap := expandAdvancedMachineFeatures(d); amfMap != nil {
+		amfJSON, _ := json.Marshal(amfMap)
+		var amf compute.AdvancedMachineFeatures
+		_ = json.Unmarshal(amfJSON, &amf)
+		instance.AdvancedMachineFeatures = &amf
 	}
 	return instance, nil
 }
@@ -2481,8 +2487,14 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 			return fmt.Errorf("Error setting confidential_instance_config: %s", err)
 		}
 	}
-	if err := d.Set("advanced_machine_features", flattenAdvancedMachineFeatures(instance.AdvancedMachineFeatures)); err != nil {
-		return fmt.Errorf("Error setting advanced_machine_features: %s", err)
+	if instance.AdvancedMachineFeatures != nil {
+		amfMap, err := tpgresource.ConvertToMap(instance.AdvancedMachineFeatures)
+		if err != nil {
+			return fmt.Errorf("Error converting advanced_machine_features: %s", err)
+		}
+		if err := d.Set("advanced_machine_features", flattenAdvancedMachineFeatures(amfMap)); err != nil {
+			return fmt.Errorf("Error setting advanced_machine_features: %s", err)
+		}
 	}
 	if d.Get("desired_status") != "" {
 		if err := d.Set("desired_status", instance.Status); err != nil {

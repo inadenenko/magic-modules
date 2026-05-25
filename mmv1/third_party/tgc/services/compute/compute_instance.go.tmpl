@@ -9,6 +9,7 @@
 package compute
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -164,7 +165,6 @@ func expandComputeInstance(project string, d tpgresource.TerraformResourceData, 
 		Hostname:                d.Get("hostname").(string),
 		ForceSendFields:         []string{"CanIpForward", "DeletionProtection"},
 		DisplayDevice:           expandDisplayDevice(d),
-		AdvancedMachineFeatures: expandAdvancedMachineFeatures(d),
 	}
 	if sicMap := expandShieldedVmConfigs(d); sicMap != nil {
 		inst.ShieldedInstanceConfig = &compute.ShieldedInstanceConfig{
@@ -173,6 +173,12 @@ func expandComputeInstance(project string, d tpgresource.TerraformResourceData, 
 			EnableIntegrityMonitoring: sicMap["enableIntegrityMonitoring"].(bool),
 			ForceSendFields:           []string{"EnableSecureBoot", "EnableVtpm", "EnableIntegrityMonitoring"},
 		}
+	}
+		if amfMap := expandAdvancedMachineFeatures(d); amfMap != nil {
+		amfJSON, _ := json.Marshal(amfMap)
+		var amf compute.AdvancedMachineFeatures
+		_ = json.Unmarshal(amfJSON, &amf)
+		inst.AdvancedMachineFeatures = &amf
 	}
 	return inst, nil
 }

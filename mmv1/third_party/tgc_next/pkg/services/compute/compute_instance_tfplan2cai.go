@@ -188,7 +188,6 @@ func expandComputeInstance(project string, d tpgresource.TerraformResourceData, 
 		Scheduling:               scheduling,
 		DeletionProtection:       d.Get("deletion_protection").(bool),
 		Hostname:                 d.Get("hostname").(string),
-		AdvancedMachineFeatures:  expandAdvancedMachineFeatures(d),
 		DisplayDevice:            expandDisplayDeviceTgcNext(d),
 		ResourcePolicies:         tpgresource.ConvertStringArr(d.Get("resource_policies").([]interface{})),
 		ReservationAffinity:      reservationAffinity,
@@ -210,6 +209,17 @@ func expandComputeInstance(project string, d tpgresource.TerraformResourceData, 
 		}
 	}
 
+	if _, ok := d.GetOk("advanced_machine_features"); ok {
+		prefix := "advanced_machine_features.0"
+		instance.AdvancedMachineFeatures = &compute.AdvancedMachineFeatures{
+			EnableNestedVirtualization: d.Get(prefix + ".enable_nested_virtualization").(bool),
+			ThreadsPerCore:             int64(d.Get(prefix + ".threads_per_core").(int)),
+			TurboMode:                  d.Get(prefix + ".turbo_mode").(string),
+			VisibleCoreCount:           int64(d.Get(prefix + ".visible_core_count").(int)),
+			PerformanceMonitoringUnit:  d.Get(prefix + ".performance_monitoring_unit").(string),
+			EnableUefiNetworking:       d.Get(prefix + ".enable_uefi_networking").(bool),
+		}
+	}
 	return instance, nil
 }
 
